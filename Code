@@ -1,0 +1,99 @@
+import time
+import pyautogui
+import keyboard
+import pytesseract
+import cv2
+import numpy as np
+import re
+
+
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+pyautogui.FAILSAFE = False
+
+REGION = (0, 30, 300, 60)  
+RIGHT_EDGE = 238
+LEFT_EDGE = -239
+
+running = False
+direction = "D"  
+def read_x():
+    screenshot = pyautogui.screenshot(region=REGION)
+
+    img = cv2.cvtColor(np.array(screenshot), cv2.COLOR_RGB2BGR)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.threshold(gray, 160, 255, cv2.THRESH_BINARY)[1]
+
+    text = pytesseract.image_to_string(gray, config="--psm 6")
+    nums = re.findall(r'-?\d+', text)
+
+    if nums:
+        return int(nums[0])
+    return None
+
+def hold_w():
+    pyautogui.keyDown('w')
+
+def hold_dx():
+    pyautogui.keyUp('a')
+    pyautogui.keyDown('d')
+    pyautogui.keyDown('x')
+    hold_w()
+    print("Holding D + X + W")
+
+def hold_ax():
+    pyautogui.keyUp('d')
+    pyautogui.keyDown('a')
+    pyautogui.keyDown('x')
+    hold_w()
+    print("Holding A + X + W")
+
+def double_shift():
+    pyautogui.keyDown('shift')
+    pyautogui.keyUp('shift')
+    time.sleep(1)
+    pyautogui.keyDown('shift')
+    pyautogui.keyUp('shift')
+    print("Shift x2")
+
+print("Press O + P to start. Ctrl+C to stop.")
+
+try:
+    while True:
+        # Start macro
+        if not running and keyboard.is_pressed('o') and keyboard.is_pressed('p'):
+            time.sleep(0.3)
+            running = True
+            direction = "D"
+            hold_dx()
+            hold_w()
+            print("Macro started")
+       
+        if running:
+            hold_w()  
+
+            x = read_x()
+
+            if x == RIGHT_EDGE and direction == "D":
+                double_shift()
+                time.sleep(1)
+                hold_ax()
+                direction = "A"
+
+            elif x == LEFT_EDGE and direction == "A":
+                double_shift()
+                time.sleep(1)
+                hold_dx()
+                direction = "D"
+
+        time.sleep(0.1)
+
+except KeyboardInterrupt:
+    print("Stopping macro...")
+
+finally:
+    pyautogui.keyUp('a')
+    pyautogui.keyUp('d')
+    pyautogui.keyUp('x')
+    pyautogui.keyUp('shift')
+    pyautogui.keyUp('w')
+    print("All keys released.")
